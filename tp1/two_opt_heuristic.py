@@ -1,3 +1,10 @@
+'''
+    Renato Pacheco Vieira 2150283
+    Referencias:
+        http://www2.isye.gatech.edu/~mgoetsch/cali/VEHICLE/TSP/TSP009__.HTM
+        https://en.wikipedia.org/wiki/2-opt
+'''
+
 def _cost_calc(cost_matrix, path):
     cost = 0
     for i in range(len(path)-1):
