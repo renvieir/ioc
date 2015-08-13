@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- Copyright IBM Corporation 2013, 2014. All Rights Reserved. -->
+<!-- Example VMC file for two workers to which the master
+     connects via MPI. This configuration is for an MPI configuration with
+     at least three processes: the master at rank 0 and workers at ranks
+     1 and 2.
+     To actually use this file replace
+       MPIAPI by the MPI api type of your MPI lib (e.g., "mpich" or "openmpi"),
+       MPIDIR by the installation directory of your MPI version,
+       MPILIB by the name of your MPI library.
+-->
+<vmc>
+  <machine name="machine1">
+    <transport type="MPI">
+      <rank value="1"/>
+      <cmdline>
+        <item value="-mpiapi=MPIAPI"/>
+        <item value="-libpath=MPIDIR/lib"/>
+        <item value="-mpilib=MPIDIR/lib/MPILIB"/>
+      </cmdline>
+    </transport>
+  </machine>
+  <machine name="machine2">
+    <transport type="MPI">
+      <rank value="2"/>
+      <cmdline>
+        <item value="-mpiapi=MPIAPI"/>
+        <item value="-libpath=MPIDIR/lib"/>
+        <item value="-mpilib=MPIDIR/lib/MPILIB"/>
+      </cmdline>
+    </transport>
+  </machine>
+</vmc>

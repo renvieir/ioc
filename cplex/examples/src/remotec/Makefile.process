@@ -1,0 +1,56 @@
+# -*- mode: Makefile -*-
+# ###################################################################### #
+#                                                                        #
+#  Makefile to build a remote object application that uses the           #
+#  process transport.                                                    #
+#                                                                        #
+#  In order to run an example we need to do the following:               #
+#       Just run the binary and specify on the command line              #
+#       the machines that should be used for the workers and the path    #
+#       to the binary that implements the worker (absolute path to the   #
+#       cplex binary).                                                   #
+#                                                                        #
+# ###################################################################### #
+
+TRANSPORT_CFLAGS	=	-DUSE_PROCESS
+TRANSPORT_LDFLAGS	=	# nothing
+
+# Transport specific flags for running examples
+parmipopt-transport-args = -machine=localhost -machine=localhost -bin=$(WORKER)
+parbenders-transport-args = -bin=$(WORKER)
+
+# How to run a single example
+remote-run-parbenders: $(TRANSPORT)/parbenders_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/parbenders_master$E $(parbenders-transport-args) \
+		$(parbenders-args)
+remote-run-parmipopt: $(TRANSPORT)/$(dllpref)parmipopt_userfunction$(dllsuff) $(TRANSPORT)/parmipopt_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/parmipopt_master$E $(parmipopt-transport-args) \
+		$(parmipopt-args)
+
+
+# Transport specific flags for running examples
+iloparmipopt-transport-args = -machine=localhost -machine=localhost -bin=$(WORKER)
+iloparbenders-transport-args = -bin=$(WORKER)
+
+# How to run a single example
+remote-run-iloparbenders: $(TRANSPORT)/iloparbenders_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/iloparbenders_master$E $(iloparbenders-transport-args) \
+		$(iloparbenders-args)
+remote-run-iloparmipopt: $(TRANSPORT)/$(dllpref)iloparmipopt_userfunction$(dllsuff) $(TRANSPORT)/iloparmipopt_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/iloparmipopt_master$E $(iloparmipopt-transport-args) \
+		$(iloparmipopt-args)
+
+# Transport specific flags for running examples
+RemoteParBenders-transport-args = -bin=$(WORKER)
+
+# How to run a single example
+remote-run-RemoteParBenders: $(TRANSPORT)/RemoteParBenders.class
+	$(LDLIBPATH)=$$$(LDLIBPATH):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(REMOTEJAVA) -Dilog.cplex.transport=$(TRANSPORT)transport \
+		RemoteParBenders \
+		$(RemoteParBenders-transport-args) $(RemoteParBenders-args)
+

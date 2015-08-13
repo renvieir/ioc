@@ -1,0 +1,162 @@
+# -*- mode: Makefile -*-
+# ###################################################################### #
+#                                                                        #
+#  Makefile to build a remote object application that uses the           #
+#  process transport.                                                    #
+#                                                                        #
+#  In order to run an example we need to do the following:               #
+#       Just run the binary and specify on the command line              #
+#       the machines that should be used for the workers and the path    #
+#       to the binary that implements the worker (absolute path to the   #
+#       cplex binary).                                                   #
+#                                                                        #
+# ###################################################################### #
+
+TRANSPORT_CFLAGS	=	-DUSE_TCPIP
+TRANSPORT_LDFLAGS	=	# nothing
+
+WORKERPID		=	workerpid
+
+# Transport specific flags for running examples. Note that we use a
+# different port for each example
+parmipopt-port           = 12345
+parmipopt-transport-args = -address=127.0.0.1:$(parmipopt-port) \
+                           -address=127.0.0.1:$(parmipopt-port)
+parbenders-port          = 12346
+parbenders-transport-args= -address=127.0.0.1:$(parbenders-port) \
+                           -address=127.0.0.1:$(parbenders-port) \
+                           -address=127.0.0.1:$(parbenders-port) \
+                           -address=127.0.0.1:$(parbenders-port) \
+                           -address=127.0.0.1:$(parbenders-port)
+
+# How to run a single example
+remote-run-parbenders: $(TRANSPORT)/parbenders_master$E
+	# Start the worker process and store its PID in file $(WORKERPID)
+	rm -f $(WORKERPID)
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(WORKER) -worker=tcpip \
+		-address=127.0.0.1:$(parbenders-port) \
+		-logfile=parbenders.srvlog -pidfile=$(WORKERPID) &
+	# Wait a short time so that we can be sure that the worker is up
+	# before we start the master (otherwise the master may fail to connect
+	# to the worker). Also check that the worker did start up properly. To
+	# test that we attempt to run 'ps' on the PID of the worker. This will
+	# fail if the worker did not start up properly.
+	sleep 5
+	ps -p `cat $(WORKERPID)`
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/parbenders_master$E $(parbenders-transport-args) \
+		$(parbenders-args) \
+		|| (kill `cat $(WORKERPID)`; false)
+	kill `cat $(WORKERPID)`
+	rm -f $(WORKERPID)
+
+remote-run-parmipopt: $(TRANSPORT)/$(dllpref)parmipopt_userfunction$(dllsuff) $(TRANSPORT)/parmipopt_master$E
+	# Start the worker process and store its PID in file $(WORKERPID)
+	rm -f $(WORKERPID)
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(WORKER) -worker=tcpip $(parmipopt-userfunction) \
+		-address=127.0.0.1:$(parmipopt-port) \
+		-logfile=parmipopt.srvlog -pidfile=$(WORKERPID) &
+	# Wait a short time so that we can be sure that the worker is up
+	# before we start the master (otherwise the master may fail to connect
+	# to the worker). Also check that the worker did start up properly. To
+	# test that we attempt to run 'ps' on the PID of the worker. This will
+	# fail if the worker did not start up properly.
+	sleep 5
+	ps -p `cat $(WORKERPID)`
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/parmipopt_master$E $(parmipopt-transport-args) \
+		$(parmipopt-args) \
+		|| (kill `cat $(WORKERPID)`; false)
+	kill `cat $(WORKERPID)`
+	rm -f $(WORKERPID)
+
+
+# Transport specific flags for running examples. Note that we use a
+# different port for each example
+iloparmipopt-port           = 12347
+iloparmipopt-transport-args = -address=127.0.0.1:$(iloparmipopt-port) \
+                           -address=127.0.0.1:$(iloparmipopt-port)
+iloparbenders-port          = 12348
+iloparbenders-transport-args= -address=127.0.0.1:$(iloparbenders-port) \
+                           -address=127.0.0.1:$(iloparbenders-port) \
+                           -address=127.0.0.1:$(iloparbenders-port) \
+                           -address=127.0.0.1:$(iloparbenders-port) \
+                           -address=127.0.0.1:$(iloparbenders-port)
+
+# How to run a single example
+remote-run-iloparbenders: $(TRANSPORT)/iloparbenders_master$E
+	# Start the worker process and store its PID in file $(WORKERPID)
+	rm -f $(WORKERPID)
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(WORKER) -worker=tcpip \
+		-address=127.0.0.1:$(iloparbenders-port) \
+		-logfile=iloparbenders.srvlog -pidfile=$(WORKERPID) &
+	# Wait a short time so that we can be sure that the worker is up
+	# before we start the master (otherwise the master may fail to connect
+	# to the worker). Also check that the worker did start up properly. To
+	# test that we attempt to run 'ps' on the PID of the worker. This will
+	# fail if the worker did not start up properly.
+	sleep 5
+	ps -p `cat $(WORKERPID)`
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/iloparbenders_master$E $(iloparbenders-transport-args) \
+		$(iloparbenders-args) \
+		|| (kill `cat $(WORKERPID)`; false)
+	kill `cat $(WORKERPID)`
+	rm -f $(WORKERPID)
+
+remote-run-iloparmipopt: $(TRANSPORT)/$(dllpref)iloparmipopt_userfunction$(dllsuff) $(TRANSPORT)/iloparmipopt_master$E
+	# Start the worker process and store its PID in file $(WORKERPID)
+	rm -f $(WORKERPID)
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(WORKER) -worker=tcpip $(iloparmipopt-userfunction) \
+		-address=127.0.0.1:$(iloparmipopt-port) \
+		-logfile=iloparmipopt.srvlog -pidfile=$(WORKERPID) &
+	# Wait a short time so that we can be sure that the worker is up
+	# before we start the master (otherwise the master may fail to connect
+	# to the worker). Also check that the worker did start up properly. To
+	# test that we attempt to run 'ps' on the PID of the worker. This will
+	# fail if the worker did not start up properly.
+	sleep 5
+	ps -p `cat $(WORKERPID)`
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(TRANSPORT)/iloparmipopt_master$E $(iloparmipopt-transport-args) \
+		$(iloparmipopt-args) \
+		|| (kill `cat $(WORKERPID)`; false)
+	kill `cat $(WORKERPID)`
+	rm -f $(WORKERPID)
+
+# Transport specific flags for running examples. Note that we use a
+# different port for each example
+RemoteParBenders-port          = 12349
+RemoteParBenders-transport-args= -address=127.0.0.1:$(RemoteParBenders-port) \
+                           -address=127.0.0.1:$(RemoteParBenders-port) \
+                           -address=127.0.0.1:$(RemoteParBenders-port) \
+                           -address=127.0.0.1:$(RemoteParBenders-port) \
+                           -address=127.0.0.1:$(RemoteParBenders-port)
+
+# How to run a single example
+remote-run-RemoteParBenders: $(TRANSPORT)/RemoteParBenders.class
+	# Start the worker process and store its PID in file $(WORKERPID)
+	rm -f $(WORKERPID)
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(WORKER) -worker=tcpip \
+		-address=127.0.0.1:$(RemoteParBenders-port) \
+		-logfile=RemoteParBenders.srvlog -pidfile=$(WORKERPID) &
+	# Wait a short time so that we can be sure that the worker is up
+	# before we start the master (otherwise the master may fail to connect
+	# to the worker). Also check that the worker did start up properly. To
+	# test that we attempt to run 'ps' on the PID of the worker. This will
+	# fail if the worker did not start up properly.
+	sleep 5
+	ps -p `cat $(WORKERPID)`
+	$(LDLIBPATH)=$$$(LDLIBPATH):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(REMOTEJAVA) -Dilog.cplex.transport=$(TRANSPORT)transport \
+		RemoteParBenders \
+		$(RemoteParBenders-transport-args) $(RemoteParBenders-args) \
+		|| (kill `cat $(WORKERPID)`; false)
+	kill `cat $(WORKERPID)`
+	rm -f $(WORKERPID)
+

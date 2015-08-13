@@ -1,0 +1,53 @@
+# -*- mode: Makefile -*-
+# This system dependent makefile configures the following variables:
+#    dllpref        The prefix for dynamic/shared libraries. This is 'lib'
+#                   on most systems.
+#    dllsuff        The suffix for dynamic/shared libraries. This is '.so'
+#                   on most systems.
+#    DLLFLAGS       Linker flags that are required when building shared
+#                   libaries.
+#    RDYNAMIC       Flags that are required when creating a binary that
+#                   supports runtime linking.
+#    MPIROOT        Root directory of MPI installation.
+#    MPILIBDIR      Directory where MPI libraries are, usually $(MPIROOT)/lib.
+#    MPILIB         The MPI libraries, usually 'mpi'.
+#    MPIINCDIR      The directory for MPI headers, usually $(MPIROOT)/include.
+#    MPIRUN         The mpirun binary, usually $(MPIROOT)/bin/mpirun.
+#    LDLIBPATH      The name of the environment variable that is used by the
+#                   runtime linker to discover library paths. On most
+#                   platforms this is LD_LIBRARY_PATH, on Mac it is
+#                   DYLD_LIBRARY_PATH
+#    O              The suffix for object files (.obj on Windows, .o else)
+#    E              The suffix for executable files (.exe on Windows,
+#                   empty on other platforms)
+#    REMOTEJAVA     Runs a JVM that has the $(TRANSPORT) directory on the
+#                   classpath
+#    REMOTE-CPPUFUN-LNFLAGS  Special linker flags that are required when
+#                   a remote object user function is linked with C++.
+
+dllpref		=	lib
+dllsuff		=	.so
+DLLFLAGS	=	-m64 -shared -rdynamic
+RDYNAMIC	=	-rdynamic
+MPIROOT		=	/opt/openmpi
+MPILIBDIR	=	$(MPIROOT)/lib
+MPILIB		=	mpi
+MPIINCDIR	=	$(MPIROOT)/include
+MPIRUN		=	$(MPIROOT)/bin/mpirun
+LDLIBPATH	=	LD_LIBRARY_PATH
+O		=	.o
+E		=	
+REMOTEJAVA = java  -d64 -Djava.library.path=$(CPLEXDIR)/bin/x86-64_linux -classpath $(CPLEXJARDIR):$(TRANSPORT)
+REMOTE-CPPUFUN-LNFLAGS = 
+
+# The default transport is the process transport
+TRANSPORT	=	process
+
+# Include other Makefiles
+srcdir		=	../../../examples/src/remotec
+cppsrcdir	=	../../../examples/src/remotecpp
+javasrcdir	=	../../../examples/src/remotejava
+
+include Makefile
+include $(srcdir)/Makefile.$(TRANSPORT)
+include $(srcdir)/Makefile.remoteobject

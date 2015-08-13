@@ -1,0 +1,201 @@
+SYSTEM     = x86-64_linux
+LIBFORMAT  = static_pic
+
+#------------------------------------------------------------
+#
+# When you adapt this makefile to compile your CPLEX programs
+# please copy this makefile and set CPLEXDIR and CONCERTDIR to
+# the directories where CPLEX and CONCERT are installed.
+#
+#------------------------------------------------------------
+
+CPLEXDIR      = ../../..
+CONCERTDIR    = ../../../../concert
+
+# ---------------------------------------------------------------------
+# Compiler selection 
+# ---------------------------------------------------------------------
+
+CCC = g++ -O0
+CC  = gcc -O0
+JAVAC = javac 
+
+# ---------------------------------------------------------------------
+# Compiler options 
+# ---------------------------------------------------------------------
+
+CCOPT = -m64 -O -fPIC -fno-strict-aliasing -fexceptions -DNDEBUG -DIL_STD
+COPT  = -m64 -fPIC -fno-strict-aliasing
+JOPT  = -classpath $(CPLEXDIR)/lib/cplex.jar -O
+
+# ---------------------------------------------------------------------
+# Link options and libraries
+# ---------------------------------------------------------------------
+
+CPLEXBINDIR   = $(CPLEXDIR)/bin/$(BINDIST)
+CPLEXJARDIR   = $(CPLEXDIR)/lib/cplex.jar
+CPLEXLIBDIR   = $(CPLEXDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
+CONCERTLIBDIR = $(CONCERTDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
+
+CCLNDIRS  = -L$(CPLEXLIBDIR) -L$(CONCERTLIBDIR)
+CLNDIRS   = -L$(CPLEXLIBDIR)
+CCLNFLAGS = -lconcert -lilocplex -lcplexdistmip -lcplex -lm -lpthread -ldl
+CLNFLAGS  = -lcplexdistmip -lcplex -lm -lpthread -ldl
+JAVA      = java  -d64 -Djava.library.path=$(CPLEXDIR)/bin/x86-64_linux -classpath $(CPLEXJARDIR):.
+
+# ---------------------------------------------------------------------
+# Runtime environment
+# We assume that commands are run in a bash-like shell
+# ---------------------------------------------------------------------
+
+DMEXEC = LD_LIBRARY_PATH=../../../bin/x86-64_linux:$$LD_LIBRARY_PATH
+
+
+dm_all:
+	make -f Makefile.distmip dm_all_c
+	make -f Makefile.distmip dm_all_cpp
+	make -f Makefile.distmip dm_all_java
+
+dm_execute: dm_all
+	make -f Makefile.distmip dm_execute_c
+	make -f Makefile.distmip dm_execute_cpp
+	make -f Makefile.distmip dm_execute_java
+CONCERTINCDIR = $(CONCERTDIR)/include
+CPLEXINCDIR   = $(CPLEXDIR)/include
+
+EXDIR         = $(CPLEXDIR)/examples
+EXINC         = $(EXDIR)/include
+EXDATA        = $(EXDIR)/data
+EXSRCC        = $(EXDIR)/src/distmipc
+EXSRCCX       = $(EXDIR)/src/distmipx
+EXSRCCPP      = $(EXDIR)/src/distmipcpp
+EXSRCJAVA     = $(EXDIR)/src/distmipjava
+
+CFLAGS  = $(COPT)  -I$(CPLEXINCDIR)
+CCFLAGS = $(CCOPT) -I$(CPLEXINCDIR) -I$(CONCERTINCDIR) 
+JCFLAGS = $(JOPT)
+
+TCPIPPID  = tcpippid
+TCPIPPORT = 12345
+
+#------------------------------------------------------------
+#  make dm_all      : to compile the examples. 
+#  make dm_execute  : to compile and execute the examples.
+#------------------------------------------------------------
+DM_C_EX =
+
+DM_CX_EX = xdistmipex1 xdistmipex2
+
+DM_CPP_EX = ilodistmipex1 ilodistmipex2
+
+DM_JAVA_EX = DistMIPEx1.class DistMIPEx2.class
+
+dm_all_c: $(C_EX) $(DM_CX_EX)
+
+dm_all_cpp: $(DM_CPP_EX)
+
+dm_all_java: $(DM_JAVA_EX)
+
+# Execute examples with process transport
+dm_execute_c_process: $(C_EX) $(DM_CX_EX)
+	$(DMEXEC) ./xdistmipex1 process.vmc $(EXDATA)/p0033.mps
+	$(DMEXEC) ./xdistmipex2 process.vmc $(EXDATA)/p0033.mps
+
+dm_execute_cpp_process: $(DM_CPP_EX)
+	$(DMEXEC) ./ilodistmipex1 process.vmc $(EXDATA)/p0033.mps
+	$(DMEXEC) ./ilodistmipex2 process.vmc $(EXDATA)/p0033.mps
+
+dm_execute_java_process: $(DM_JAVA_EX)
+	$(DMEXEC) $(JAVA) DistMIPEx1 process.vmc $(EXDATA)/p0033.mps
+	$(DMEXEC) $(JAVA) DistMIPEx2 process.vmc $(EXDATA)/p0033.mps
+
+# Execute examples with TCP/IP transport
+# Running an example with the TCP/IP transport is always a sequence
+# of commands:
+# - start the TCP/IP worker
+# - wait a little (5 seconds) to give the worker a chance to start up
+# - check that the worker did indeed start up (send signal 0)
+# - run the examples (note that we use the same worker for all examples)
+# - terminate the worker started in the first step
+dm_execute_c_tcpip: $(C_EX) $(DM_CX_EX)
+	rm -f $(TCPIPPID)
+	$(DMEXEC) $(CPLEXDIR)/bin/$(SYSTEM)/cplex -worker=tcpip -address=localhost:$(TCPIPPORT) -pidfile=$(TCPIPPID) &
+	sleep 5
+	kill -0 `cat $(TCPIPPID)`
+	$(DMEXEC) ./xdistmipex1 tcpip.vmc $(EXDATA)/p0033.mps
+	$(DMEXEC) ./xdistmipex2 tcpip.vmc $(EXDATA)/p0033.mps
+	kill -15 `cat $(TCPIPPID)`
+	rm -f $(TCPIPPID)
+
+dm_execute_cpp_tcpip: $(DM_CPP_EX)
+	rm -f $(TCPIPPID)
+	$(DMEXEC) $(CPLEXDIR)/bin/$(SYSTEM)/cplex -worker=tcpip -address=localhost:$(TCPIPPORT) -pidfile=$(TCPIPPID) &
+	sleep 5
+	kill -0 `cat $(TCPIPPID)`
+	$(DMEXEC) ./ilodistmipex1 tcpip.vmc $(EXDATA)/p0033.mps
+	$(DMEXEC) ./ilodistmipex2 tcpip.vmc $(EXDATA)/p0033.mps
+	kill -15 `cat $(TCPIPPID)`
+	rm -f $(TCPIPPID)
+
+dm_execute_java_tcpip: $(DM_JAVA_EX)
+	rm -f $(TCPIPPID)
+	$(DMEXEC) $(CPLEXDIR)/bin/$(SYSTEM)/cplex -worker=tcpip -address=localhost:$(TCPIPPORT) -pidfile=$(TCPIPPID) &
+	sleep 5
+	kill -0 `cat $(TCPIPPID)`
+	$(DMEXEC) $(JAVA) DistMIPEx1 tcpip.vmc $(EXDATA)/p0033.mps
+	$(DMEXEC) $(JAVA) DistMIPEx2 tcpip.vmc $(EXDATA)/p0033.mps
+	kill -15 `cat $(TCPIPPID)`
+	rm -f $(TCPIPPID)
+
+# The default transport used for distmip is the process transport
+# since for this deployment is most simple
+dm_execute_c:    dm_execute_c_process
+dm_execute_cpp:  dm_execute_cpp_process
+dm_execute_java: dm_execute_java_process
+
+# ------------------------------------------------------------
+
+dm_clean :
+	/bin/rm -rf $(DM_C_EX:=.o) $(DM_CX_EX:=.o) $(DM_CPP_EX:=.o)
+	/bin/rm -rf $(DM_C_EX) $(DM_CX_EX) $(DM_CPP_EX) $(DM_JAVA_EX:.class=*.class)
+
+# ------------------------------------------------------------
+#
+# The examples
+#
+
+# C
+
+xdistmipex1: xdistmipex1.o
+	$(CC) $(CFLAGS) $(CLNDIRS) -o xdistmipex1 xdistmipex1.o $(CLNFLAGS)
+xdistmipex1.o: $(EXSRCCX)/xdistmipex1.c
+	$(CC) -c $(CFLAGS) $(EXSRCCX)/xdistmipex1.c -o xdistmipex1.o
+
+xdistmipex2: xdistmipex2.o
+	$(CC) $(CFLAGS) $(CLNDIRS) -o xdistmipex2 xdistmipex2.o $(CLNFLAGS)
+xdistmipex2.o: $(EXSRCCX)/xdistmipex2.c
+	$(CC) -c $(CFLAGS) $(EXSRCCX)/xdistmipex2.c -o xdistmipex2.o
+
+# C++
+
+ilodistmipex1: ilodistmipex1.o
+	$(CCC) $(CCFLAGS) $(CCLNDIRS) -o ilodistmipex1 ilodistmipex1.o $(CCLNFLAGS)
+ilodistmipex1.o: $(EXSRCCPP)/ilodistmipex1.cpp
+	$(CCC) -c $(CCFLAGS) $(EXSRCCPP)/ilodistmipex1.cpp -o ilodistmipex1.o
+ilodistmipex2: ilodistmipex2.o
+	$(CCC) $(CCFLAGS) $(CCLNDIRS) -o ilodistmipex2 ilodistmipex2.o $(CCLNFLAGS)
+ilodistmipex2.o: $(EXSRCCPP)/ilodistmipex2.cpp
+	$(CCC) -c $(CCFLAGS) $(EXSRCCPP)/ilodistmipex2.cpp -o ilodistmipex2.o
+
+# Java
+
+DistMIPEx1.class: $(EXSRCJAVA)/DistMIPEx1.java
+	$(JAVAC) $(JCFLAGS) -d . $(EXSRCJAVA)/DistMIPEx1.java 
+
+DistMIPEx2.class: $(EXSRCJAVA)/DistMIPEx2.java
+	$(JAVAC) $(JCFLAGS) -d . $(EXSRCJAVA)/DistMIPEx2.java 
+
+
+# Local Variables:
+# mode: makefile
+# End:

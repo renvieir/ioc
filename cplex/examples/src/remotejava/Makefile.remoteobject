@@ -1,0 +1,143 @@
+# -*- mode: Makefile -*-
+# ###################################################################### #
+#                                                                        #
+#  Makefile to build an application that uses the CPLEX remote object.   #
+#                                                                        #
+# ###################################################################### #
+
+default-target: remote-run
+
+# ###################################################################### #
+#                                                                        #
+#  Targets.                                                              #
+#                                                                        #
+# ###################################################################### #
+
+.PHONY: remote-run remote-clean remote-run-mpi remote-run
+
+remote-clean:
+	rm -rf $(TRANSPORT)
+
+# ###################################################################### #
+#                                                                        #
+#  Build the shared object that implements the user function.            #
+#                                                                        #
+# ###################################################################### #
+
+$(TRANSPORT)/parmipopt_userfunction$O: $(srcdir)/parmipopt.c
+	mkdir -p $(TRANSPORT)
+	$(CC) $(CFLAGS) $(TRANSPORT_CFLAGS) -DCOMPILE_USERFUNCTION -c \
+		-o $@ $(srcdir)/parmipopt.c
+
+$(TRANSPORT)/$(dllpref)parmipopt_userfunction$(dllsuff): $(TRANSPORT)/parmipopt_userfunction$O
+	mkdir -p $(TRANSPORT)
+	$(CC) -o $@ $(TRANSPORT)/parmipopt_userfunction$O \
+		$(TRANSPORT_LDFLAGS) $(DLLFLAGS)
+
+$(TRANSPORT)/iloparmipopt_userfunction$O: $(cppsrcdir)/iloparmipopt.cpp
+	mkdir -p $(TRANSPORT)
+	$(CCC) $(CCFLAGS) $(TRANSPORT_CFLAGS) -DCOMPILE_USERFUNCTION -c \
+		-o $@ $(cppsrcdir)/iloparmipopt.cpp
+
+$(TRANSPORT)/$(dllpref)iloparmipopt_userfunction$(dllsuff): $(TRANSPORT)/iloparmipopt_userfunction$O
+	mkdir -p $(TRANSPORT)
+	$(CCC) $(CCLNDIRS) -o $@ $(TRANSPORT)/iloparmipopt_userfunction$O \
+		$(CCLNFLAGS) $(TRANSPORT_LDFLAGS) $(DLLFLAGS) \
+		$(REMOTE-CPPUFUN-LNFLAGS)
+
+# ###################################################################### #
+#                                                                        #
+#  Build the binary that implements the master (runs on master machine)  #
+#                                                                        #
+# ###################################################################### #
+
+$(TRANSPORT)/parbenders_master$O: $(srcdir)/parbenders.c
+	mkdir -p $(TRANSPORT)
+	$(CC) $(CFLAGS) $(TRANSPORT_CFLAGS) -DCOMPILE_MASTER -c \
+		-o $@ $(srcdir)/parbenders.c
+
+$(TRANSPORT)/parbenders_master$E: $(TRANSPORT)/parbenders_master$O
+	$(CC) $(CFLAGS) $(CLNDIRS) -o $@ $(TRANSPORT)/parbenders_master$O \
+		-L$(CPLEXDIR)/bin/$(SYSTEM) -lcplex1261remote \
+		$(CLNFLAGS) $(TRANSPORT_LDFLAGS) \
+		$(RDYNAMIC)
+
+$(TRANSPORT)/parmipopt_master$O: $(srcdir)/parmipopt.c
+	mkdir -p $(TRANSPORT)
+	$(CC) $(CFLAGS) $(TRANSPORT_CFLAGS) -DCOMPILE_MASTER -c \
+		-o $@ $(srcdir)/parmipopt.c
+
+$(TRANSPORT)/parmipopt_master$E: $(TRANSPORT)/parmipopt_master$O
+	$(CC) $(CFLAGS) $(CLNDIRS) -o $@ $(TRANSPORT)/parmipopt_master$O \
+		-L$(CPLEXDIR)/bin/$(SYSTEM) -lcplex1261remote \
+		$(CLNFLAGS) $(TRANSPORT_LDFLAGS) \
+		$(RDYNAMIC)
+
+$(TRANSPORT)/iloparbenders_master$O: $(cppsrcdir)/iloparbenders.cpp
+	mkdir -p $(TRANSPORT)
+	$(CCC) $(CCFLAGS) $(TRANSPORT_CFLAGS) -DCOMPILE_MASTER -c \
+		-o $@ $(cppsrcdir)/iloparbenders.cpp
+
+$(TRANSPORT)/RemoteParBenders.class: $(javasrcdir)/RemoteParBenders.java
+	mkdir -p $(TRANSPORT)
+	$(JAVAC) $(JCFLAGS) -d $(TRANSPORT) $(javasrcdir)/RemoteParBenders.java
+
+$(TRANSPORT)/iloparbenders_master$E: $(TRANSPORT)/iloparbenders_master$O
+	$(CCC) $(CCFLAGS) $(CCLNDIRS) -o $@ $(TRANSPORT)/iloparbenders_master$O \
+		-L$(CPLEXDIR)/bin/$(SYSTEM) -lcplex1261remote \
+		$(CCLNFLAGS) $(TRANSPORT_LDFLAGS) \
+		$(RDYNAMIC)
+
+$(TRANSPORT)/iloparmipopt_master$O: $(cppsrcdir)/iloparmipopt.cpp
+	mkdir -p $(TRANSPORT)
+	$(CCC) $(CCFLAGS) $(TRANSPORT_CFLAGS) -DCOMPILE_MASTER -c \
+		-o $@ $(cppsrcdir)/iloparmipopt.cpp
+
+$(TRANSPORT)/iloparmipopt_master$E: $(TRANSPORT)/iloparmipopt_master$O
+	$(CCC) $(CCFLAGS) $(CCLNDIRS) -o $@ $(TRANSPORT)/iloparmipopt_master$O \
+		-L$(CPLEXDIR)/bin/$(SYSTEM) -lcplex1261remote \
+		$(CCLNFLAGS) $(TRANSPORT_LDFLAGS) \
+		$(RDYNAMIC)
+
+# ###################################################################### #
+#                                                                        #
+#  Arguments for examples that do not depend on the transport            #
+#  For each example we also specifiy the argument that is required to    #
+#  load the user function (if any needs to be loaded).                   #
+#                                                                        #
+# ###################################################################### #
+
+parbenders-args         = # nothing
+parbenders-userfunction = # nothing
+parmipopt-args          = -model=../../data/location.lp
+parmipopt-userfunction  = -userfunction=parmipopt_userfunction=REGISTER_USERFUNCTION
+
+iloparbenders-args         = # nothing
+iloparbenders-userfunction = # nothing
+iloparmipopt-args          = -model=../../data/location.lp
+iloparmipopt-userfunction  = -userfunction=iloparmipopt_userfunction=REGISTER_USERFUNCTION
+
+RemoteParBenders-args         = # nothing
+RemoteParBenders-userfunction = # nothing
+
+# ###################################################################### #
+#                                                                        #
+#  Run the example                                                       #
+#  More details can be found in the transport-specific makefiles.        #
+#                                                                        #
+#  We assume that the shell that runs this is a bash.                    #
+#                                                                        #
+# ###################################################################### #
+
+# Absolute path to worker.
+WORKER = $(CPLEXDIR)/bin/$(SYSTEM)/cplex$E
+
+remote-run: remote-run-parbenders remote-run-parmipopt
+
+remote-run-cpp: remote-run-iloparbenders remote-run-iloparmipopt
+
+remote-run-java: remote-run-RemoteParBenders
+
+remote-run-all: remote-run remote-run-cpp remote-run-java
+
+

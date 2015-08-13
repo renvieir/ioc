@@ -1,0 +1,84 @@
+# -*- mode: Makefile -*-
+# ###################################################################### #
+#                                                                        #
+#  Makefile to build a remote object application that uses the           #
+#  MPI transport.                                                        #
+#                                                                        #
+#  In order to run an example we need to do the following:               #
+#       Create an mpiapp file that specifies which processes to run.     #
+#       Create an mpimachs file that specifies which machines to use     #
+#       (in this example we only use the local machine).                 #
+#       Run mpirun with the configuration given in these two files.      #
+#                                                                        #
+# ###################################################################### #
+
+TRANSPORT_CFLAGS	=	-DUSE_MPI -I$(MPIINCDIR)
+TRANSPORT_LDFLAGS	=	-L$(MPILIBDIR) -l$(MPILIB)
+
+# Transport specific flags for running examples
+parmipopt-transport-args  = # nothing
+parbenders-transport-args = # nothing
+
+# Command lines for mpirun
+parmipopt-mpirun-args  = -host localhost \
+                         -np 1 mpi/parmipopt_master$E $(parmipopt-args) $(parmipopt-transport-args) \
+                         : -np 1 $(WORKER) -worker=mpi $(parmipopt-userfunction) -logfile=parmipopt0.log \
+                         : -np 1 $(WORKER) -worker=mpi $(parmipopt-userfunction) -logfile=parmipopt1.log 
+parbenders-mpirun-args = -host localhost \
+                         -np 1 ./mpi/parbenders_master$E $(parbenders-args) $(parbenders-transport-args) \
+                         : -np 1 $(WORKER) -worker=mpi $(parbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(parbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(parbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(parbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(parbenders-userfunction)
+
+remote-run-parbenders: $(TRANSPORT)/parbenders_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(MPIRUN) $(parbenders-mpirun-args)
+
+remote-run-parmipopt: $(TRANSPORT)/$(dllpref)parmipopt_userfunction$(dllsuff) $(TRANSPORT)/parmipopt_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(MPIRUN) $(parmipopt-mpirun-args)
+
+
+# Transport specific flags for running examples
+iloparmipopt-transport-args  = # nothing
+iloparbenders-transport-args = # nothing
+
+# Command lines for mpirun
+iloparmipopt-mpirun-args  = -host localhost \
+                         -np 1 mpi/iloparmipopt_master$E $(iloparmipopt-args) $(iloparmipopt-transport-args) \
+                         : -np 1 $(WORKER) -worker=mpi $(iloparmipopt-userfunction) -logfile=iloparmipopt0.log \
+                         : -np 1 $(WORKER) -worker=mpi $(iloparmipopt-userfunction) -logfile=iloparmipopt1.log 
+iloparbenders-mpirun-args = -host localhost \
+                         -np 1 ./mpi/iloparbenders_master$E $(iloparbenders-args) $(iloparbenders-transport-args) \
+                         : -np 1 $(WORKER) -worker=mpi $(iloparbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(iloparbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(iloparbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(iloparbenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(iloparbenders-userfunction)
+
+remote-run-iloparbenders: $(TRANSPORT)/iloparbenders_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(MPIRUN) $(iloparbenders-mpirun-args)
+
+remote-run-iloparmipopt: $(TRANSPORT)/$(dllpref)iloparmipopt_userfunction$(dllsuff) $(TRANSPORT)/iloparmipopt_master$E
+	$(LDLIBPATH)=$$$(LDLIBPATH):./$(TRANSPORT):$(CPLEXDIR)/bin/$(SYSTEM) \
+		$(MPIRUN) $(iloparmipopt-mpirun-args)
+
+# Transport specific flags for running examples
+RemoteParBenders-transport-args = # nothing
+
+# Command lines for mpirun
+RemoteParBenders-mpirun-args = -host localhost \
+                         -np 1 ./mpi/RemoteParBenders_master$E $(RemoteParBenders-args) $(RemoteParBenders-transport-args) \
+                         : -np 1 $(WORKER) -worker=mpi $(RemoteParBenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(RemoteParBenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(RemoteParBenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(RemoteParBenders-userfunction) \
+                         : -np 1 $(WORKER) -worker=mpi $(RemoteParBenders-userfunction)
+
+# We provide a rule for Java through MPI but do not actually do anything.
+remote-run-RemoteParBenders: $(TRANSPORT)/RemoteParBenders.class
+	echo "Running Java examples through MPI is not supported"
+
